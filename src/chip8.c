@@ -2,11 +2,6 @@
 #include <stdlib.h>
 #include "chip8.h"
 
-#define MEM_SIZE 4096
-#define NUM_REG 16
-#define STACK_SIZE 16
-#define SCREEN_WIDTH 64
-#define SCREEN_HEIGHT 32
 #define OPCODE chip8->opcode
 struct chip8 {
 
@@ -113,27 +108,81 @@ void load_rom(Chip8* chip8) {
 void emulate(Chip8* chip8)
 {
 	OPCODE = chip8->memory[chip8->pc] << 8 | chip8->memory[chip8->pc + 1];
+	chip8->pc += 2;
+	unsigned short NNN = OPCODE & 0x0FFF;
+	unsigned short NN = OPCODE & 0x00FF;
+	unsigned short N = OPCODE & 0x000F;
+	unsigned short KK = OPCODE & 0x00FF;
+	unsigned short X = (OPCODE & 0x0F00) >> 8;;
+	unsigned short Y = (OPCODE & 0x00F0) >> 8;;
 
-	printf("0x%X\n", OPCODE & 0xF000);
-	switch(chip8->opcode & 0xF000) 
+	#ifdef DEBUG
+		printf(" NNN = %hu\n", NNN); 
+		printf(" NN = %hu\n", NN); 
+		printf(" N = %hu\n", N); 
+		printf(" KK = %hu\n",KK); 
+		printf(" X = %hu\n", X); 
+		printf(" Y = %hu\n", Y); 
+	#endif
+
+	//printf("0x%X\n", OPCODE & 0xF000);
+	switch(OPCODE & 0xF000) 
 	{
+		case 0x0000:
+			switch (KK) 
+			{
+				case 0x00E0:
+					
+					printf("0x00E0\n");
+					for (int i = 0; i < SCREEN_HEIGHT * SCREEN_WIDTH; i++){
+						chip8->gfx[i] = 0;
+					}
+				break;
+			}
+		break;
 		case 0x1000:
 		
-			chip8->pc = OPCODE;
+			chip8->pc = NNN;
+		break;
+
+		case 0x6000:
+			chip8->V[X] = NN;
+
+		break;
+		
+		case 0x7000:
+			chip8->V[X] += NN;
+
 		break;
 
 		case 0xA000: //ANNN
-		//! TODO 
 		
-			chip8->I = OPCODE & 0x0FFF;
-			chip8->pc += 2;
+			chip8->I = NNN;
+		//	chip8->pc += 2;
 		break;
 		
-		case 0x00E0:
-			printf("Uknown opcode: 0x%X\n", OPCODE);
-			chip8->I = OPCODE & 0x0FFF;
-			chip8->pc += 2;
+		case 0xD000:
+			chip8->V[0xF] = 0;
 
+			for (int i = 0; i < N; i++) {
+				int spriteRow = chip8->memory[chip8->V[0] + i];
+				
+				for (int j; j < 8; j++) {
+					if (spriteRow & (0x80 >> j)) {
+						int pixelX = (X + j) % SCREEN_WIDTH;
+						int pixelY = (Y + i) % SCREEN_HEIGHT;
+
+						int index = pixelX + pixelY * (SCREEN_HEIGHT * SCREEN_WIDTH);
+
+						
+						if (chip8->gfx[index == 1]) 
+							chip8->V[0xF] = 1;
+
+						chip8->gfx[index] ^= 1;
+					}
+
+				}
+			}
 		
 		break;
 
