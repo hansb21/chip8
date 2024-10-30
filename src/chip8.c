@@ -3,26 +3,9 @@
 #include "chip8.h"
 
 #define OPCODE chip8->opcode
-struct chip8 {
 
-unsigned short opcode; 
-unsigned char memory[MEM_SIZE];
-unsigned char V[NUM_REG]; // Registers V0-VE 
 
-unsigned short I; // Index Register
-unsigned short pc; //Program Counter
-unsigned short stack[STACK_SIZE];
-unsigned short sp; //Stack Pointer
-
-unsigned char gfx[SCREEN_WIDTH * SCREEN_HEIGHT];
-
-unsigned char delay_timer;
-unsigned char sound_timer;
-};
-
-unsigned char key[16];
-
-unsigned char chip8_fontset[80] =
+unsigned    char chip8_fontset[80] =
 { 
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -110,19 +93,18 @@ void emulate(Chip8* chip8)
 	OPCODE = chip8->memory[chip8->pc] << 8 | chip8->memory[chip8->pc + 1];
 	chip8->pc += 2;
 	unsigned short NNN = OPCODE & 0x0FFF;
-	unsigned short NN = OPCODE & 0x00FF;
 	unsigned short N = OPCODE & 0x000F;
 	unsigned short KK = OPCODE & 0x00FF;
-	unsigned short X = (OPCODE & 0x0F00) >> 8;;
-	unsigned short Y = (OPCODE & 0x00F0) >> 8;;
+	unsigned short X = (OPCODE >> 8) & 0x000F;
+	unsigned short Y = (OPCODE >> 4) & 0x00FF;
 
 	#ifdef DEBUG
-		printf(" NNN = %hu\n", NNN); 
-		printf(" NN = %hu\n", NN); 
-		printf(" N = %hu\n", N); 
-		printf(" KK = %hu\n",KK); 
-		printf(" X = %hu\n", X); 
-		printf(" Y = %hu\n", Y); 
+		printf("OPCODE = 0x%X\n", OPCODE);
+		printf(" NNN   = 0x%X\n ", NNN); 
+		printf(" N     = 0x%X\n ", N); 
+		printf(" KK    = 0x%X\n",KK); 
+		printf(" X     = 0x%X\n", X); 
+		printf(" Y     = 0x%X\n", Y); 
 	#endif
 
 	//printf("0x%X\n", OPCODE & 0xF000);
@@ -137,21 +119,25 @@ void emulate(Chip8* chip8)
 					for (int i = 0; i < SCREEN_HEIGHT * SCREEN_WIDTH; i++){
 						chip8->gfx[i] = 0;
 					}
+
+					chip8->V[0xF] = 1;
 				break;
 			}
 		break;
 		case 0x1000:
 		
 			chip8->pc = NNN;
+			printf("0x%X\n", chip8->pc);
+			printf("0x%X\n", OPCODE);
 		break;
 
 		case 0x6000:
-			chip8->V[X] = NN;
+			chip8->V[X] = KK;
 
 		break;
 		
 		case 0x7000:
-			chip8->V[X] += NN;
+			chip8->V[X] += KK;
 
 		break;
 
@@ -165,17 +151,17 @@ void emulate(Chip8* chip8)
 			chip8->V[0xF] = 0;
 
 			for (int i = 0; i < N; i++) {
-				int spriteRow = chip8->memory[chip8->V[0] + i];
+				int spriteRow = chip8->memory[chip8->I + i];
 				
 				for (int j; j < 8; j++) {
 					if (spriteRow & (0x80 >> j)) {
 						int pixelX = (X + j) % SCREEN_WIDTH;
 						int pixelY = (Y + i) % SCREEN_HEIGHT;
 
-						int index = pixelX + pixelY * (SCREEN_HEIGHT * SCREEN_WIDTH);
+						int index = pixelX + pixelY * (SCREEN_WIDTH);
 
 						
-						if (chip8->gfx[index == 1]) 
+						if (chip8->gfx[index]) 
 							chip8->V[0xF] = 1;
 
 						chip8->gfx[index] ^= 1;
@@ -190,4 +176,16 @@ void emulate(Chip8* chip8)
 			printf("Uknown opcode: 0x%X\n", OPCODE);
 			
 	}
+
+
+if (chip8->delay_timer > 0)
+	--chip8->delay_timer;
+
+if (chip8->sound_timer > 0)
+{
+	if (chip8->sound_timer == 1)
+		printf("BEEP\n");
+
+	--chip8->sound_timer;
+}
 }
