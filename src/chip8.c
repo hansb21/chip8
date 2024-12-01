@@ -55,10 +55,10 @@ void init(Chip8* chip8)
 	chip8->sound_timer = 0;
 }
 
-void load_rom(Chip8* chip8) {
-    FILE* rom = fopen("Chip8 emulator Logo [Garstyciuks].ch8", "rb");
+void load_rom(Chip8* chip8, const char* filename) {
+    FILE* rom = fopen(filename, "rb");
     if (rom == NULL) {
-        printf("Error opening ROM file.\n");
+        printf("Error opening ROM file: %s\n", filename);
         exit(-1);
     }
     
@@ -99,6 +99,7 @@ void emulate(Chip8* chip8)
 	unsigned short Y = (OPCODE >> 4) & 0x00FF;
 
 	#ifdef DEBUG
+		printf("[DEBUG] Executing opcode: 0x%X at PC: 0x%X\n", OPCODE, chip8->pc);
 		printf("OPCODE = 0x%X\n", OPCODE);
 		printf(" NNN   = 0x%X\n ", NNN); 
 		printf(" N     = 0x%X\n ", N); 
@@ -153,10 +154,10 @@ void emulate(Chip8* chip8)
 			for (int i = 0; i < N; i++) {
 				int spriteRow = chip8->memory[chip8->I + i];
 				
-				for (int j; j < 8; j++) {
+				for (int j = 0; j < 8; j++) {
 					if (spriteRow & (0x80 >> j)) {
-						int pixelX = (X + j) % SCREEN_WIDTH;
-						int pixelY = (Y + i) % SCREEN_HEIGHT;
+						int pixelX = (chip8->V[X] + j) % SCREEN_WIDTH;
+						int pixelY = (chip8->V[Y] + i) % SCREEN_HEIGHT;
 
 						int index = pixelX + pixelY * (SCREEN_WIDTH);
 
